@@ -1,0 +1,58 @@
+@keyframes blobMorph {
+  0%, 100% { border-radius: 60% 40% 70% 30% / 50% 60% 40% 70%; }
+  33% { border-radius: 35% 65% 42% 58% / 70% 30% 68% 32%; }
+  66% { border-radius: 72% 28% 60% 40% / 36% 72% 28% 64%; }
+}
+@keyframes blobDrift {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 4vw -3vh; }
+}
+@keyframes dotPulse {
+  50% { transform: scale(1.7); box-shadow: 0 0 22px var(--gold-primary); }
+}
+@keyframes flipIn {
+  from { transform: rotateX(90deg); opacity: 0; }
+}
+@keyframes seamFlash {
+  50% { opacity: 1; }
+}
+@keyframes ruleDraw {
+  from { transform: scaleX(0); }
+}
+@keyframes lineReveal {
+  to { width: 64vw; }
+}
+@keyframes openFrame {
+  0%, 56% { clip-path: inset(0 0 0 0); }
+  100% { clip-path: inset(50% 0 50% 0); }
+}
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(28px); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(.1); }
+}
+@keyframes polyMorph {
+  0%, 100% { clip-path: polygon(50% 0, 98% 35%, 79% 100%, 20% 100%, 2% 35%); }
+  50% { clip-path: polygon(50% 0, 88% 18%, 100% 72%, 50% 100%, 0 72%, 12% 18%); }
+}
+@keyframes floatPill {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-18px); }
+}
+@keyframes blink {
+  50% { opacity: .35; }
+}
+@keyframes skillAppear {
+  from { opacity: 0; transform: translateX(18px); }
+}
+@keyframes slowDrift {
+  50% { transform: translateY(-24px); }
+}
+@keyframes shake {
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+@keyframes ringPulse {
+  to { width: 82px; height: 82px; opacity: .25; }
+}

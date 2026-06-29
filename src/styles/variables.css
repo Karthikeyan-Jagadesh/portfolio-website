@@ -1,0 +1,17 @@
+:root {
+  --black: #080808;
+  --black-soft: #0f0f0f;
+  --black-card: #141414;
+  --gold-primary: #c9a84c;
+  --gold: var(--gold-primary);
+  --gold-bright: #f0c040;
+  --gold-dim: #6b5a2a;
+  --gold-glow: rgba(201, 168, 76, 0.15);
+  --white: #f5f5f5;
+  --white-dim: #888888;
+  --white-ghost: #1a1a1a;
+  --border-gold: rgba(201, 168, 76, 0.2);
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-ui: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "Space Mono", monospace;
+}
