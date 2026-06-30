@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import emailjs from 'emailjs-com'
 import MagneticButton from '../components/MagneticButton.jsx'
+import ShaderBackground from '../components/ShaderBackground.jsx'
 
 export default function Contact() {
   const [status, setStatus] = useState('idle')
@@ -35,7 +36,7 @@ export default function Contact() {
   }
 
   return (
-    <section className={`scene contact-scene ${status}`}>
+    <ShaderBackground className={`scene contact-scene ${status}`}>
       <div className="contact-copy">
         <span className="ghost-talk">LET'S</span>
         <h2>TALK.</h2>
@@ -61,6 +62,6 @@ export default function Contact() {
           </>
         )}
       </form>
-    </section>
+    </ShaderBackground>
   )
 }
