@@ -1,181 +1,236 @@
 import React, { useRef, useEffect } from 'react'
 
-export default function ShaderBackground({ children, className }) {
+export default function ShaderBackground({
+  children,
+  className,
+  baseColor = '#0A0A0F',
+  colors = ['#7C5CFF', '#4FD1FF', '#FF6FD8']
+}) {
+  const wrapperRef = useRef(null)
   const canvasRef = useRef(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    const wrapper = wrapperRef.current
+    if (!canvas || !wrapper) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     let animationFrameId
-    let lines = []
-    const lineCount = 38
+    let blobs = []
+    let grainPattern = null
 
-    // Mouse tracking variables
+    // Mouse tracking state
     let mouseXTarget = 0
     let mouseYTarget = 0
     let mouseX = 0
     let mouseY = 0
+    let isHovering = false
 
-    const randomRange = (min, max) => Math.random() * (max - min) + min
+    // Precompute a tiled noise canvas for grain texture
+    const initGrain = () => {
+      const noiseCanvas = document.createElement('canvas')
+      noiseCanvas.width = 128
+      noiseCanvas.height = 128
+      const nCtx = noiseCanvas.getContext('2d')
+      if (!nCtx) return
 
-    // Initialize lines
-    const initLines = (w, h) => {
-      lines = []
-      for (let i = 0; i < lineCount; i++) {
-        const xRatio = -0.05 + 1.10 * (i / (lineCount - 1))
-        const z = Math.random() // Depth: 0 (far) to 1 (close)
-        const depthScale = 0.55 + z * 0.9
-
-        lines.push({
-          xRatio,
-          z,
-          depthScale,
-          amplitude: randomRange(18, 73),
-          freq: randomRange(0.008, 0.014),
-          waveSpeed: randomRange(0.0006, 0.0016),
-          wavePhase: randomRange(0, Math.PI * 2),
-          
-          foldFreq: randomRange(0.002, 0.005),
-          foldAmp: randomRange(6, 22),
-          foldPhase: randomRange(0, Math.PI * 2),
-
-          width: randomRange(0.5, 1.7) * depthScale,
-          baseOpacity: randomRange(0.12, 0.67) * depthScale,
-          driftSpeed: randomRange(0.0001, 0.0003),
-          driftPhase: randomRange(0, Math.PI * 2),
-          pulsePhase: randomRange(0, Math.PI * 2)
-        })
+      const nData = nCtx.createImageData(128, 128)
+      for (let i = 0; i < nData.data.length; i += 4) {
+        const val = Math.floor(Math.random() * 255)
+        nData.data[i] = val       // R
+        nData.data[i + 1] = val   // G
+        nData.data[i + 2] = val   // B
+        nData.data[i + 3] = 11    // A (Subtle grain opacity, ~0.04)
       }
+      nCtx.putImageData(nData, 0, 0)
+      grainPattern = ctx.createPattern(noiseCanvas, 'repeat')
+    }
+
+    // Initialize/recalculate blobs based on dimensions
+    const initBlobs = (w, h) => {
+      const minDim = Math.min(w, h)
+
+      // Reset mouse targets to center if resize occurs
+      if (!isHovering) {
+        mouseXTarget = w / 2
+        mouseYTarget = h / 2
+        mouseX = w / 2
+        mouseY = h / 2
+      }
+
+      // Configure 3 static/moving blobs using input color palette
+      blobs = [
+        {
+          color: colors[0] || '#7C5CFF',
+          baseRadius: minDim * 0.48,
+          // Lissajous parameters
+          speedX: 0.0004,
+          speedY: 0.0003,
+          phaseX: 0,
+          phaseY: Math.PI / 4,
+          pulseSpeed: 0.001,
+          pulsePhase: 0,
+          opacity: 0.18
+        },
+        {
+          color: colors[1] || '#4FD1FF',
+          baseRadius: minDim * 0.52,
+          speedX: 0.0002,
+          speedY: 0.0005,
+          phaseX: Math.PI / 2,
+          phaseY: 0,
+          pulseSpeed: 0.0007,
+          pulsePhase: Math.PI / 3,
+          opacity: 0.15
+        },
+        {
+          color: colors[2] || '#FF6FD8',
+          baseRadius: minDim * 0.44,
+          speedX: 0.00035,
+          speedY: 0.00025,
+          phaseX: Math.PI,
+          phaseY: Math.PI / 3,
+          pulseSpeed: 0.0012,
+          pulsePhase: Math.PI * 1.5,
+          opacity: 0.16
+        }
+      ]
     }
 
     // Handle high-DPI scaling using parent bounding rect
     const resize = () => {
-      const parent = canvas.parentElement
-      if (!parent) return
-      const rect = parent.getBoundingClientRect()
+      const rect = wrapper.getBoundingClientRect()
       const dpr = window.devicePixelRatio || 1
 
       canvas.width = rect.width * dpr
       canvas.height = rect.height * dpr
 
-      // Reset transform and apply high-DPI scaling
+      // Apply scale matrix transformation
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
-      initLines(rect.width, rect.height)
+      initBlobs(rect.width, rect.height)
+      initGrain()
     }
 
     // Set initial size
     resize()
 
-    // Listeners
     window.addEventListener('resize', resize)
 
+    // Mouse Listeners attached to wrapper
     const handleMouseMove = (e) => {
-      // Normalize cursor coordinates from -1 to 1
-      mouseXTarget = (e.clientX / window.innerWidth) * 2 - 1
-      mouseYTarget = (e.clientY / window.innerHeight) * 2 - 1
+      const rect = wrapper.getBoundingClientRect()
+      mouseXTarget = e.clientX - rect.left
+      mouseYTarget = e.clientY - rect.top
     }
-    window.addEventListener('mousemove', handleMouseMove)
+    const handleMouseEnter = () => {
+      isHovering = true
+    }
+    const handleMouseLeave = () => {
+      isHovering = false
+    }
+
+    wrapper.addEventListener('mousemove', handleMouseMove)
+    wrapper.addEventListener('mouseenter', handleMouseEnter)
+    wrapper.addEventListener('mouseleave', handleMouseLeave)
 
     // Animation Loop
     const animate = (timestamp) => {
-      const parent = canvas.parentElement
-      if (!parent) return
-      const rect = parent.getBoundingClientRect()
+      const rect = wrapper.getBoundingClientRect()
       const w = rect.width
       const h = rect.height
 
-      // Ease mouse coordinates (simple lerp with 0.04 factor)
-      mouseX += (mouseXTarget - mouseX) * 0.04
-      mouseY += (mouseYTarget - mouseY) * 0.04
-
-      // 1. Background Fill
-      ctx.fillStyle = '#0D0D0D'
+      // 1. Base Solid Color Fill
+      ctx.fillStyle = baseColor
       ctx.fillRect(0, 0, w, h)
 
-      // 2. Draw Soft Candlelight Gradient under the lines
-      const candleX = w / 2
-      const candleY = h * 0.4
-      const candleRadius = Math.min(w, h) * 0.65
-      const candleGrad = ctx.createRadialGradient(
-        candleX, candleY, 0,
-        candleX, candleY, candleRadius
-      )
-      candleGrad.addColorStop(0, 'rgba(201, 168, 76, 0.055)')
-      candleGrad.addColorStop(1, 'rgba(201, 168, 76, 0)')
-      ctx.fillStyle = candleGrad
-      ctx.fillRect(0, 0, w, h)
+      // Smoothly interpolate spotlight cursor coords (lerp ~0.05)
+      const targetX = isHovering ? mouseXTarget : w / 2
+      const targetY = isHovering ? mouseYTarget : h * 0.4
+      mouseX += (targetX - mouseX) * 0.05
+      mouseY += (targetY - mouseY) * 0.05
 
-      // 3. Sort lines back-to-front by depth z
-      const sortedLines = [...lines].sort((a, b) => a.z - b.z)
+      // 2. Render Blobs with additive color mixing
+      ctx.globalCompositeOperation = 'lighter'
 
-      // 4. Draw Lines
-      sortedLines.forEach((line) => {
-        // Calculate baseX with slow horizontal drift
-        const initialX = line.xRatio * w
-        const drift = Math.sin(timestamp * line.driftSpeed + line.driftPhase) * (w * 0.04)
-        
-        // Mouse parallax horizontal tilt (background shifts more than foreground)
-        const parallaxX = mouseX * (w * 0.026) * (1 - line.z)
-        const baseX = initialX + drift + parallaxX
+      blobs.forEach((blob) => {
+        // Lissajous curve displacement
+        const x = w / 2 + Math.sin(timestamp * blob.speedX + blob.phaseX) * (w * 0.28)
+        const y = h / 2 + Math.cos(timestamp * blob.speedY + blob.phaseY) * (h * 0.28)
 
-        // Mouse parallax vertical shift
-        const parallaxY = mouseY * (h * 0.02) * (1 - line.z)
+        // Radial scale breath
+        const pulse = 0.9 + 0.1 * Math.sin(timestamp * blob.pulseSpeed + blob.pulsePhase)
+        const radius = blob.baseRadius * pulse
 
-        // Calculate opacity with breathing pulse
-        const pulse = 0.85 + 0.15 * Math.sin(timestamp * 0.012 + line.pulsePhase)
-        const alpha = line.baseOpacity * pulse
+        // Draw radial light blob
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, radius)
+        grad.addColorStop(0, blob.color)
+        grad.addColorStop(1, 'rgba(0,0,0,0)')
 
+        ctx.fillStyle = grad
+        ctx.globalAlpha = blob.opacity
         ctx.beginPath()
-        ctx.lineWidth = line.width
-        ctx.strokeStyle = `rgba(201, 168, 76, ${alpha})`
-
-        // Apply depth-based glow
-        if (alpha > 0.45) {
-          ctx.shadowBlur = 8 * line.depthScale
-          ctx.shadowColor = `rgba(201, 168, 76, ${alpha * 0.6})`
-        } else {
-          ctx.shadowBlur = 0
-        }
-
-        // Draw vertical path segment by segment (~6px spacing)
-        let first = true
-        for (let y = -40; y <= h + 40; y += 6) {
-          const wavePhase = timestamp * line.waveSpeed + line.wavePhase
-          const primaryWave = Math.sin(y * line.freq + wavePhase) * line.amplitude * line.depthScale
-
-          const foldPhase = timestamp * 0.0004 + line.foldPhase
-          const secondaryWave = Math.sin(y * line.foldFreq + foldPhase) * line.foldAmp
-
-          const x = baseX + primaryWave + secondaryWave
-          const drawY = y + parallaxY
-
-          if (first) {
-            ctx.moveTo(x, drawY)
-            first = false
-          } else {
-            ctx.lineTo(x, drawY)
-          }
-        }
-        ctx.stroke()
-
-        // Reset shadow configuration to prevent line bleeding
-        ctx.shadowBlur = 0
+        ctx.arc(x, y, radius, 0, Math.PI * 2)
+        ctx.fill()
       })
 
-      // 5. Vignette Pass at the end to deepen corners
-      const vigRadius = Math.max(w, h) * 0.78
+      // 3. Render Spotlight Blob (trails cursor)
+      const spotRadius = Math.min(w, h) * 0.35
+      const spotGrad = ctx.createRadialGradient(
+        mouseX, mouseY, 0,
+        mouseX, mouseY, spotRadius
+      )
+      // Use cyan or magenta spotlight, default is soft violet/cyan blend
+      const spotColor = colors[1] || '#4FD1FF'
+      spotGrad.addColorStop(0, spotColor)
+      spotGrad.addColorStop(1, 'rgba(0,0,0,0)')
+
+      ctx.fillStyle = spotGrad
+      // Breathe spotlight opacity slightly, dimmer when cursor is stationary
+      ctx.globalAlpha = isHovering ? 0.24 : 0.08
+      ctx.beginPath()
+      ctx.arc(mouseX, mouseY, spotRadius, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Reset composite mode and global alpha
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.globalAlpha = 1.0
+
+      // 4. Draw structural accent curves (ambient depth sweeps)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)'
+      ctx.lineWidth = 1.0
+      
+      // Sweep 1
+      ctx.beginPath()
+      let sweepY1 = Math.sin(timestamp * 0.0003) * 40
+      ctx.moveTo(-50, h * 0.2 + sweepY1)
+      ctx.bezierCurveTo(w * 0.3, h * 0.1, w * 0.6, h * 0.8, w + 50, h * 0.6 + sweepY1)
+      ctx.stroke()
+
+      // Sweep 2
+      ctx.beginPath()
+      let sweepY2 = Math.cos(timestamp * 0.0002) * 50
+      ctx.moveTo(-50, h * 0.7 + sweepY2)
+      ctx.bezierCurveTo(w * 0.4, h * 0.9, w * 0.7, h * 0.2, w + 50, h * 0.3 + sweepY2)
+      ctx.stroke()
+
+      // 5. Vignette Pass
+      const vigRadius = Math.max(w, h) * 0.8
       const vignetteGrad = ctx.createRadialGradient(
-        w / 2, h / 2, Math.min(w, h) * 0.28,
+        w / 2, h / 2, Math.min(w, h) * 0.25,
         w / 2, h / 2, vigRadius
       )
       vignetteGrad.addColorStop(0, 'rgba(0, 0, 0, 0)')
-      vignetteGrad.addColorStop(1, 'rgba(0, 0, 0, 0.55)')
+      vignetteGrad.addColorStop(1, 'rgba(0, 0, 0, 0.45)')
       ctx.fillStyle = vignetteGrad
       ctx.fillRect(0, 0, w, h)
+
+      // 6. Draw Film Grain Texture Overlay
+      if (grainPattern) {
+        ctx.fillStyle = grainPattern
+        ctx.fillRect(0, 0, w, h)
+      }
 
       animationFrameId = requestAnimationFrame(animate)
     }
@@ -185,12 +240,18 @@ export default function ShaderBackground({ children, className }) {
     return () => {
       cancelAnimationFrame(animationFrameId)
       window.removeEventListener('resize', resize)
-      window.removeEventListener('mousemove', handleMouseMove)
+      wrapper.removeEventListener('mousemove', handleMouseMove)
+      wrapper.removeEventListener('mouseenter', handleMouseEnter)
+      wrapper.removeEventListener('mouseleave', handleMouseLeave)
     }
-  }, [])
+  }, [baseColor, colors])
 
   return (
-    <div className={className} style={{ position: 'relative', overflow: 'hidden' }}>
+    <div
+      ref={wrapperRef}
+      className={className}
+      style={{ position: 'relative', overflow: 'hidden' }}
+    >
       <canvas
         ref={canvasRef}
         style={{
@@ -202,7 +263,7 @@ export default function ShaderBackground({ children, className }) {
           zIndex: 0,
           pointerEvents: 'none',
           display: 'block',
-          backgroundColor: '#0D0D0D'
+          backgroundColor: baseColor
         }}
       />
       <div

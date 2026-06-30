@@ -36,7 +36,7 @@ export default function Contact() {
   }
 
   return (
-    <ShaderBackground className={`scene contact-scene contact-section ${status}`}>
+    <ShaderBackground className={`scene contact-scene contact-section ${status}`} colors={['#7C5CFF', '#4FD1FF', '#FF6FD8']}>
       <div className="contact-copy">
         <span className="ghost-talk">LET'S</span>
         <h2>TALK.</h2>
