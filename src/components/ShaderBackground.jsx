@@ -139,18 +139,7 @@ export default function ShaderBackground({ children, className }) {
           backgroundColor: '#0D0D0D'
         }}
       />
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          display: 'grid',
-          gridTemplateColumns: 'inherit',
-          alignItems: 'inherit',
-          gap: 'inherit',
-          width: '100%',
-          height: '100%'
-        }}
-      >
+      <div style={{ position: 'relative', zIndex: 1, display: 'contents' }}>
         {children}
       </div>
     </div>
