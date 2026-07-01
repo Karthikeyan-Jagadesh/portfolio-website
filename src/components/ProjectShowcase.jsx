@@ -1,104 +1,272 @@
 import React, { useState, useEffect, useRef } from 'react'
 
-const projects = [
+const defaultProjects = [
   {
     id: "01",
-    title: "Pet Adoption Center",
-    tech: ["HTML5", "CSS3(Vanilla)", "JavaScript"],
-    screenshot: "/pet-adoption.png",
-    description: "A multi-page frontend website for browsing and adopting pets. Features interactive category filtering, dynamic pet details, an application form with validation, and success stories — styled using a minimal gold-and-black design system.",
-    github: "https://github.com/Karthikeyan-Jagadesh/Pet-Adoption-Center",
-    live: null
+    title: "MovieSphere",
+    subtitle: "React 19 movie discovery app",
+    description: "A high-performance cinematic discovery interface built with a bold Neo-Brutalist design. Fetches and displays popular, top-rated, and custom genres from the TMDB API, featuring wishlists, search filtering, and custom color theme switches.",
+    tags: ["React 19", "Vite", "TMDB API"],
+    image: "/movisphere.png",
+    github: "https://github.com/Karthikeyan-Jagadesh/Modern-Movie-Application",
+    live: "https://movisphere.vercel.app"
   },
   {
     id: "02",
-    title: "To-Do Calendar",
-    tech: ["Node.js", "Express.js", "Oracle DB", "JWT", "HTML", "CSS", "JavaScript"],
-    screenshot: "/todo-calendar.png",
-    description: "A secure task-management web application featuring a drag-and-drop calendar interface. Built with role-based dashboard access, session authentication using JSON Web Tokens (JWT), password hashing, and Oracle database integration.",
-    github: "https://github.com/Karthikeyan-Jagadesh/To_do-Management-System",
-    live: null
-  },
-  {
-    id: "03",
     title: "RouteWake",
-    tech: ["Java", "Spring Boot", "Leaflet.js", "Oracle DB", "HTML", "CSS", "JavaScript"],
-    screenshot: "/routewake.png",
+    subtitle: "GPS-based location alarm",
     description: "A location-aware transit assistant designed to prevent missing transit stops. Tracks real-time GPS locations and rings an alarm as you approach pre-set destination coordinates. Stores past trips and alarm history in a secure database.",
+    tags: ["Java", "Spring Boot", "Leaflet.js", "Oracle DB"],
+    image: "/routewake.png",
     github: "https://github.com/Karthikeyan-Jagadesh/Location-Alarm-Tracker",
     live: null
   },
   {
+    id: "03",
+    title: "To-Do Management",
+    subtitle: "Full-stack calendar manager",
+    description: "A secure task-management web application featuring a drag-and-drop calendar interface. Built with role-based dashboard access, session authentication using JSON Web Tokens (JWT), password hashing, and Oracle database integration.",
+    tags: ["Node.js", "Express.js", "Oracle DB", "JWT", "HTML", "CSS"],
+    image: "/todo-calendar.png",
+    github: "https://github.com/Karthikeyan-Jagadesh/To_do-Management-System",
+    live: null
+  },
+  {
     id: "04",
-    title: "MovieSphere",
-    tech: ["React 19", "Vite", "Vanilla CSS", "Context API", "TMDB REST API"],
-    screenshot: "/movisphere.png",
-    description: "A high-performance cinematic discovery interface built with a bold Neo-Brutalist design. Fetches and displays popular, top-rated, and custom genres from the TMDB API, featuring wishlists, search filtering, and custom color theme switches.",
-    github: "https://github.com/Karthikeyan-Jagadesh/Modern-Movie-Application",
-    live: "https://movisphere.vercel.app"
+    title: "Pet Adoption Center",
+    subtitle: "Multi-page frontend website",
+    description: "A multi-page frontend website for browsing and adopting pets. Features interactive category filtering, dynamic pet details, an application form with validation, and success stories — styled using a minimal gold-and-black design system.",
+    tags: ["HTML5", "CSS3", "JavaScript"],
+    image: "/pet-adoption.png",
+    github: "https://github.com/Karthikeyan-Jagadesh/Pet-Adoption-Center",
+    live: null
   }
 ]
 
-export default function ProjectShowcase() {
+export default function ProjectShowcase({ projects = defaultProjects }) {
   const [activeIndex, setActiveIndex] = useState(0)
-  const [animate, setAnimate] = useState(false)
+  const [openPanel, setOpenPanel] = useState(null)
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
+  const [hoveringActive, setHoveringActive] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const previewRef = useRef(null)
+  const [isTouch, setIsTouch] = useState(false)
 
-  // Track responsive screen size
+  const canvasRef = useRef(null)
+  const lastClickedIndex = useRef(null)
+  const activeCardRef = useRef(null)
+
+  // 1. RESPONSIVENESS AND DEVICE DETECTION
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
+      setIsTouch('ontouchstart' in window || navigator.maxTouchPoints > 0)
     }
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  // Replay entry animation and reset scroll on project change
+  // 2. AMBIENT radial particles canvas
   useEffect(() => {
-    setAnimate(false)
-    if (previewRef.current) {
-      previewRef.current.scrollTop = 0
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    let animationFrameId
+    let particles = []
+    const particleCount = 40
+
+    const randomRange = (min, max) => Math.random() * (max - min) + min
+
+    const initParticles = (w, h) => {
+      particles = []
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          x: 0,
+          y: 0,
+          angle: randomRange(0, Math.PI * 2),
+          speed: randomRange(0.3, 0.9),
+          radius: randomRange(1, 2.5),
+          opacity: randomRange(0.15, 0.55),
+          maxDist: randomRange(120, Math.min(w, h) * 0.45)
+        })
+      }
     }
-    const timer = requestAnimationFrame(() => {
-      setAnimate(true)
-    })
-    return () => cancelAnimationFrame(timer)
+
+    const resize = () => {
+      const parent = canvas.parentElement
+      if (!parent) return
+      const rect = parent.getBoundingClientRect()
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = rect.width * dpr
+      canvas.height = rect.height * dpr
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      initParticles(rect.width, rect.height)
+    }
+
+    resize()
+    window.addEventListener('resize', resize)
+
+    const animate = () => {
+      const rect = canvas.getBoundingClientRect()
+      const w = rect.width
+      const h = rect.height
+      const cx = w / 2
+      const cy = h / 2
+
+      ctx.clearRect(0, 0, w, h)
+
+      particles.forEach((p) => {
+        // Move outwards
+        p.x += Math.cos(p.angle) * p.speed
+        p.y += Math.sin(p.angle) * p.speed
+
+        const dist = Math.sqrt(p.x * p.x + p.y * p.y)
+
+        // Reset if reached max distance
+        if (dist >= p.maxDist) {
+          p.x = 0
+          p.y = 0
+          p.angle = randomRange(0, Math.PI * 2)
+          p.speed = randomRange(0.3, 0.9)
+          p.radius = randomRange(1, 2.5)
+          p.opacity = randomRange(0.15, 0.55)
+          p.maxDist = randomRange(120, Math.min(w, h) * 0.45)
+        }
+
+        // Calculate opacity fade near max distance
+        const currentOpacity = p.opacity * (1 - dist / p.maxDist)
+
+        ctx.beginPath()
+        ctx.arc(cx + p.x, cy + p.y, p.radius, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(201, 168, 76, ${currentOpacity})`
+        ctx.fill()
+      })
+
+      animationFrameId = requestAnimationFrame(animate)
+    }
+
+    animate()
+
+    return () => {
+      cancelAnimationFrame(animationFrameId)
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
+
+  // 3. KEYBOARD LISTENERS & CLOSE ON CAROUSEL CHANGE
+  useEffect(() => {
+    // Reset tilt and close open panels when project changes
+    setTilt({ x: 0, y: 0 })
+    setOpenPanel(null)
+    lastClickedIndex.current = activeIndex
   }, [activeIndex])
 
-  const activeProject = projects[activeIndex]
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Escape closes open details panel
+      if (e.key === 'Escape') {
+        setOpenPanel(null)
+        return
+      }
 
-  // Hover state for rows
-  const [hoveredIndex, setHoveredIndex] = useState(null)
+      // Ignore arrows if detail panel is open
+      if (openPanel !== null) return
+
+      if (e.key === 'ArrowLeft') {
+        setActiveIndex((prev) => (prev === 0 ? projects.length - 1 : prev - 1))
+      } else if (e.key === 'ArrowRight') {
+        setActiveIndex((prev) => (prev === projects.length - 1 ? 0 : prev + 1))
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [openPanel, projects.length])
+
+  // 4. MOUSE TILT CALCULATIONS FOR ACTIVE CARD
+  const handleMouseMove = (e, idx) => {
+    if (idx !== activeIndex || openPanel !== null || isTouch) return
+    
+    const card = e.currentTarget
+    const rect = card.getBoundingClientRect()
+    const halfW = rect.width / 2
+    const halfH = rect.height / 2
+    const offsetX = e.clientX - rect.left - halfW
+    const offsetY = e.clientY - rect.top - halfH
+
+    const tiltY = (offsetX / halfW) * 10
+    const tiltX = -(offsetY / halfH) * 8
+
+    setTilt({ x: tiltX, y: tiltY })
+    setHoveringActive(true)
+  }
+
+  const handleMouseLeave = () => {
+    setTilt({ x: 0, y: 0 })
+    setHoveringActive(false)
+  }
+
+  // 5. CLICK HANDLERS
+  const handleCardClick = (idx) => {
+    if (activeIndex === idx) {
+      // If clicked index is already active, slide up the details panel
+      setOpenPanel(openPanel === idx ? null : idx)
+    } else {
+      setActiveIndex(idx)
+    }
+  }
+
+  const translateZ = isMobile ? 260 : 380
+  const angleStep = 360 / projects.length
 
   return (
-    <div
+    <section
       style={{
-        display: 'flex',
-        flexDirection: isMobile ? 'column' : 'row',
-        gap: '40px',
         width: '100%',
-        height: '100%',
-        minHeight: isMobile ? 'auto' : '60vh',
-        color: '#FFFFFF'
+        minHeight: '100vh',
+        background: '#0D0D0D',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+        position: 'relative',
+        padding: '60px 20px',
+        boxSizing: 'border-box'
       }}
     >
-      {/* LEFT COLUMN: LIST */}
+      {/* 1. Gold Radial Background Particles */}
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 0,
+          pointerEvents: 'none',
+          opacity: 0.4
+        }}
+      />
+
+      {/* 2. Headline Content */}
       <div
         style={{
-          flex: isMobile ? 'none' : '0 0 40%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '24px'
+          zIndex: 1,
+          textAlign: 'center',
+          marginBottom: isMobile ? '20px' : '40px',
+          userSelect: 'none'
         }}
       >
         <span
           style={{
             fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
             color: '#C9A84C',
-            letterSpacing: '4px',
+            fontSize: '0.78rem',
+            letterSpacing: '0.35em',
             textTransform: 'uppercase',
             display: 'block',
             marginBottom: '8px'
@@ -106,390 +274,543 @@ export default function ProjectShowcase() {
         >
           MISSION ARCHIVE
         </span>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: isMobile ? '2rem' : '2.8rem',
+            color: '#FFFFFF',
+            fontWeight: 'normal',
+            margin: 0
+          }}
+        >
+          Project Orbit
+        </h2>
+      </div>
 
+      {/* 3. 3D perspective viewport wrapper */}
+      <div
+        style={{
+          zIndex: 1,
+          perspective: '1200px',
+          width: isMobile ? '90vw' : '760px',
+          height: isMobile ? '450px' : '520px',
+          position: 'relative',
+          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        {/* Rotator Container */}
         <div
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
+            width: '100%',
+            height: '100%',
+            transformStyle: 'preserve-3d',
+            transition: 'transform 0.72s cubic-bezier(0.4, 0, 0.2, 1)',
+            transform: `rotateY(${-activeIndex * angleStep}deg)`,
+            position: 'relative'
           }}
         >
           {projects.map((proj, idx) => {
             const isActive = activeIndex === idx
-            const isHovered = hoveredIndex === idx
+            const isPanelOpen = openPanel === idx
+            const baseAngle = idx * angleStep
 
-            // Define dynamic row opacity and translation shift
-            let opacity = 0.35
-            let transformX = '0px'
-            if (isActive) {
-              opacity = 1
-            } else if (isHovered) {
-              opacity = 0.6
-              transformX = '4px'
-            }
+            // Calculate card transitions
+            const cardTransition = hoveringActive && isActive
+              ? 'transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.4s ease'
+              : 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), filter 0.4s ease'
+
+            // Apply local mouse tilt if hovering and active
+            const tiltTransform = isActive
+              ? `rotateY(${baseAngle + tilt.y}deg) rotateX(${tilt.x}deg) translateZ(${translateZ}px) scale(1.06)`
+              : `rotateY(${baseAngle}deg) translateZ(${translateZ}px) scale(0.88)`
 
             return (
-              <button
+              <div
                 key={proj.id}
-                onClick={() => setActiveIndex(idx)}
-                onMouseEnter={() => setHoveredIndex(idx)}
-                onMouseLeave={() => setHoveredIndex(null)}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  outline: 'none',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  padding: '16px 20px 16px 24px',
-                  position: 'relative',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
                   width: '100%',
-                  opacity: opacity,
-                  transform: `translateX(${transformX})`,
-                  transition: 'opacity 0.25s ease, transform 0.25s ease',
-                  userSelect: 'none'
+                  height: '100%',
+                  transformStyle: 'preserve-3d',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  pointerEvents: isActive ? 'auto' : 'none'
                 }}
               >
-                {/* Active Sliding Left Border */}
-                <div
+                {/* Individual Card */}
+                <article
+                  ref={isActive ? activeCardRef : null}
+                  onClick={() => handleCardClick(idx)}
+                  onMouseMove={(e) => handleMouseMove(e, idx)}
+                  onMouseLeave={handleMouseLeave}
                   style={{
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    width: '3px',
-                    height: '100%',
-                    background: '#C9A84C',
-                    transform: isActive ? 'scaleY(1)' : 'scaleY(0)',
-                    transformOrigin: 'top',
-                    transition: 'transform 300ms ease'
+                    width: isMobile ? '88vw' : '340px',
+                    height: isMobile ? '400px' : '460px',
+                    borderRadius: '20px',
+                    overflow: 'hidden',
+                    background: 'linear-gradient(145deg, #1a1a1a, #111)',
+                    border: '1px solid rgba(201, 168, 76, 0.12)',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    pointerEvents: 'auto',
+                    transform: tiltTransform,
+                    transformStyle: 'preserve-3d',
+                    filter: isActive ? 'brightness(1) blur(0px)' : 'brightness(0.35) blur(1.5px)',
+                    boxShadow: isActive
+                      ? '0 0 0 1.5px rgba(201, 168, 76, 0.5), 0 0 40px rgba(201, 168, 76, 0.18), 0 20px 60px rgba(0,0,0,0.7)'
+                      : 'none',
+                    transition: cardTransition,
+                    userSelect: 'none'
                   }}
-                />
-
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px' }}>
-                  <span
-                    style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: isActive ? '18px' : '14px',
-                      color: '#C9A84C',
-                      fontWeight: isActive ? 'bold' : 'normal',
-                      transition: 'font-size 0.25s ease'
-                    }}
-                  >
-                    {proj.id}
-                  </span>
-                  <strong
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: isActive ? '20px' : '16px',
-                      color: isActive ? '#FFFFFF' : 'rgba(255, 255, 255, 0.7)',
-                      fontWeight: 'normal',
-                      transition: 'font-size 0.25s ease, color 0.25s ease'
-                    }}
-                  >
-                    {proj.title}
-                  </strong>
-                </div>
-
-                {/* Expanded Tech List for Active Project */}
-                {isActive && (
+                >
+                  {/* Image Scrim (Top 52%) */}
                   <div
                     style={{
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '10px',
-                      color: '#C9A84C',
-                      marginTop: '4px',
-                      marginLeft: '34px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px'
+                      height: '52%',
+                      width: '100%',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2a1a 100%)'
                     }}
                   >
-                    {proj.tech.join(' / ')}
+                    {proj.image ? (
+                      <img
+                        src={proj.image}
+                        alt={proj.title}
+                        onError={(e) => {
+                          e.target.style.display = 'none'
+                        }}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                    ) : null}
+
+                    {/* Gradient Overlay bottom of image */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '40px',
+                        background: 'linear-gradient(to top, #111, transparent)'
+                      }}
+                    />
+
+                    {/* Expand Detail Trigger Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation() // Prevent rotating/toggling trigger conflict
+                        setOpenPanel(isPanelOpen ? null : idx)
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '16px',
+                        right: '16px',
+                        width: '28px',
+                        height: '28px',
+                        background: 'rgba(0,0,0,0.4)',
+                        border: '1px solid rgba(201,168,76,0.3)',
+                        borderRadius: '50%',
+                        color: '#C9A84C',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        lineHeight: 1,
+                        outline: 'none',
+                        zIndex: 2,
+                        transition: 'background 0.25s, border-color 0.25s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = 'rgba(201,168,76,0.2)'
+                        e.target.style.borderColor = '#C9A84C'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = 'rgba(0,0,0,0.4)'
+                        e.target.style.borderColor = 'rgba(201,168,76,0.3)'
+                      }}
+                    >
+                      ↗
+                    </button>
                   </div>
-                )}
-              </button>
+
+                  {/* Card Body (Bottom 48%) */}
+                  <div
+                    style={{
+                      height: '48%',
+                      width: '100%',
+                      padding: '20px 22px',
+                      boxSizing: 'border-box',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      position: 'relative'
+                    }}
+                  >
+                    {/* Project Number */}
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '10px',
+                        color: '#C9A84C',
+                        letterSpacing: '1px'
+                      }}
+                    >
+                      {proj.id}
+                    </span>
+
+                    {/* Project Title */}
+                    <h3
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: '1.15rem',
+                        color: '#C9A84C',
+                        fontWeight: '600',
+                        margin: 0
+                      }}
+                    >
+                      {proj.title}
+                    </h3>
+
+                    {/* Tagline / Subtitle */}
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-ui)',
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        fontSize: '0.8rem',
+                        lineHeight: '1.3'
+                      }}
+                    >
+                      {proj.subtitle}
+                    </span>
+
+                    {/* Tags */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '6px',
+                        marginTop: 'auto'
+                      }}
+                    >
+                      {proj.tags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag}
+                          style={{
+                            border: '1px solid rgba(201, 168, 76, 0.3)',
+                            color: 'rgba(201, 168, 76, 0.8)',
+                            fontSize: '0.68rem',
+                            fontFamily: 'var(--font-mono)',
+                            borderRadius: '99px',
+                            padding: '3px 10px',
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* SLIDING GLASS DETAIL PANEL */}
+                  <div
+                    onClick={(e) => e.stopPropagation()} // Stop closing details when clicking inside
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '65%',
+                      background: 'rgba(10, 10, 10, 0.76)',
+                      backdropFilter: 'blur(16px)',
+                      WebkitBackdropFilter: 'blur(16px)',
+                      borderTop: '1px solid rgba(201, 168, 76, 0.18)',
+                      borderRadius: '0 0 20px 20px',
+                      padding: '20px 22px',
+                      boxSizing: 'border-box',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      transform: isPanelOpen ? 'translateY(0)' : 'translateY(100%)',
+                      pointerEvents: isPanelOpen ? 'auto' : 'none',
+                      transition: 'transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      zIndex: 3
+                    }}
+                  >
+                    {/* Panel Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h4
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: '1.05rem',
+                          color: '#FFFFFF',
+                          fontWeight: '600',
+                          margin: 0
+                        }}
+                      >
+                        {proj.title}
+                      </h4>
+                      <button
+                        onClick={() => setOpenPanel(null)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#C9A84C',
+                          fontSize: '1rem',
+                          cursor: 'pointer',
+                          lineHeight: 1,
+                          outline: 'none',
+                          padding: '4px'
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Description Paragraph */}
+                    <p
+                      style={{
+                        fontFamily: 'var(--font-ui)',
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        fontSize: '0.82rem',
+                        lineHeight: '1.55',
+                        margin: 0,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 4,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {proj.description}
+                    </p>
+
+                    {/* Tags inside panel */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {proj.tags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag}
+                          style={{
+                            border: '1px solid rgba(201, 168, 76, 0.3)',
+                            color: 'rgba(201, 168, 76, 0.8)',
+                            fontSize: '0.68rem',
+                            fontFamily: 'var(--font-mono)',
+                            borderRadius: '99px',
+                            padding: '3px 10px',
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Action buttons inside panel */}
+                    <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                      <a
+                        href={proj.github}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          flex: 1,
+                          textAlign: 'center',
+                          textDecoration: 'none',
+                          border: '1px solid #C9A84C',
+                          background: 'transparent',
+                          color: '#C9A84C',
+                          fontSize: '0.78rem',
+                          fontFamily: 'var(--font-ui)',
+                          fontWeight: '600',
+                          padding: '8px 0',
+                          borderRadius: '4px',
+                          transition: 'background 0.25s, color 0.25s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = '#C9A84C'
+                          e.target.style.color = '#0D0D0D'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent'
+                          e.target.style.color = '#C9A84C'
+                        }}
+                      >
+                        GitHub ↗
+                      </a>
+
+                      {proj.live ? (
+                        <a
+                          href={proj.live}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            textDecoration: 'none',
+                            background: '#C9A84C',
+                            color: '#000000',
+                            border: '1px solid #C9A84C',
+                            fontSize: '0.78rem',
+                            fontFamily: 'var(--font-ui)',
+                            fontWeight: '600',
+                            padding: '8px 0',
+                            borderRadius: '4px',
+                            transition: 'background 0.25s, border-color 0.25s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'transparent'
+                            e.target.style.color = '#C9A84C'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = '#C9A84C'
+                            e.target.style.color = '#000000'
+                          }}
+                        >
+                          Live ↗
+                        </a>
+                      ) : (
+                        <span
+                          style={{
+                            flex: 1,
+                            textAlign: 'center',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            color: 'rgba(255, 255, 255, 0.3)',
+                            fontSize: '0.78rem',
+                            fontFamily: 'var(--font-ui)',
+                            fontWeight: '600',
+                            padding: '8px 0',
+                            borderRadius: '4px',
+                            cursor: 'default'
+                          }}
+                        >
+                          Offline
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              </div>
             )
           })}
         </div>
       </div>
 
-      {/* RIGHT COLUMN: PREVIEW PANEL */}
+      {/* 4. NAVIGATION CONTROLS */}
       <div
-        ref={previewRef}
         style={{
-          flex: '1',
+          zIndex: 1,
           display: 'flex',
           flexDirection: 'column',
-          gap: '24px',
-          overflowY: isMobile ? 'visible' : 'auto',
-          maxHeight: isMobile ? 'auto' : '80vh',
-          paddingRight: isMobile ? '0' : '12px'
+          alignItems: 'center',
+          gap: '16px',
+          marginTop: isMobile ? '20px' : '40px',
+          userSelect: 'none'
         }}
       >
-        {/* BROWSER MOCKUP */}
-        <div
-          style={{
-            borderRadius: '8px',
-            border: '1px solid rgba(255,255,255,0.1)',
-            background: '#141414',
-            overflow: 'hidden',
-            position: 'relative',
-            aspectRatio: '1.6',
-            width: '100%',
-            opacity: animate ? 1 : 0,
-            transform: animate ? 'translateY(0)' : 'translateY(10px)',
-            transition: 'opacity 300ms ease, transform 300ms ease'
-          }}
-        >
-          {/* Chrome Bar */}
-          <div
+        {/* Buttons Row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {/* Previous Arrow */}
+          <button
+            onClick={() => {
+              setActiveIndex((prev) => (prev === 0 ? projects.length - 1 : prev - 1))
+            }}
             style={{
-              height: '30px',
-              background: 'rgba(255,255,255,0.03)',
-              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(201, 168, 76, 0.2)',
+              color: '#C9A84C',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              padding: '0 12px',
-              position: 'relative'
+              justifyContent: 'center',
+              lineHeight: 1,
+              outline: 'none',
+              transition: 'background 0.2s, box-shadow 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(201, 168, 76, 0.12)'
+              e.target.style.boxShadow = '0 0 15px rgba(201, 168, 76, 0.2)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'rgba(255, 255, 255, 0.05)'
+              e.target.style.boxShadow = 'none'
             }}
           >
-            {/* Dots */}
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff5f56' }} />
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ffbd2e' }} />
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#27c93f' }} />
-            </div>
+            ‹
+          </button>
 
-            {/* Address Bar */}
-            <div
-              style={{
-                position: 'absolute',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-                background: 'rgba(0,0,0,0.2)',
-                borderRadius: '4px',
-                width: '40%',
-                height: '18px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '9px',
-                color: 'rgba(255,255,255,0.3)',
-                fontFamily: 'var(--font-mono)'
-              }}
-            >
-              mission::{activeProject.title.toLowerCase().replace(/\s+/g, '-')}
-            </div>
+          {/* Dot Indicators */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            {projects.map((_, idx) => {
+              const active = activeIndex === idx
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setActiveIndex(idx)}
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    padding: 0,
+                    border: 'none',
+                    background: active ? '#C9A84C' : 'rgba(255, 255, 255, 0.18)',
+                    transform: active ? 'scale(1.25)' : 'scale(1)',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: 'all 0.25s'
+                  }}
+                />
+              )
+            })}
           </div>
 
-          {/* Screenshot Image or Fallback */}
-          <div
-            style={{
-              width: '100%',
-              height: 'calc(100% - 30px)',
-              background: 'linear-gradient(135deg, #1a1a1a, #2a2a1a)',
-              position: 'relative'
+          {/* Next Arrow */}
+          <button
+            onClick={() => {
+              setActiveIndex((prev) => (prev === projects.length - 1 ? 0 : prev + 1))
             }}
-          >
-            {activeProject.screenshot ? (
-              <img
-                src={activeProject.screenshot}
-                alt={activeProject.title}
-                onError={(e) => {
-                  e.target.style.display = 'none'
-                }}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
-                }}
-              />
-            ) : null}
-
-            {/* Ghost Watermark */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '-20px',
-                right: '10px',
-                fontSize: '180px',
-                fontWeight: '900',
-                color: '#C9A84C',
-                opacity: 0.06,
-                fontFamily: 'var(--font-display)',
-                lineHeight: 1,
-                pointerEvents: 'none',
-                userSelect: 'none'
-              }}
-            >
-              {activeProject.id}
-            </div>
-          </div>
-        </div>
-
-        {/* DETAILS PANEL */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px',
-            opacity: animate ? 1 : 0,
-            transform: animate ? 'translateY(0)' : 'translateY(10px)',
-            transition: 'opacity 300ms ease 50ms, transform 300ms ease 50ms'
-          }}
-        >
-          <h3
             style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '2.5rem',
-              fontWeight: 'normal',
-              margin: 0
-            }}
-          >
-            {activeProject.title}
-          </h3>
-
-          <p
-            style={{
-              fontFamily: 'var(--font-ui)',
-              fontSize: '15px',
-              lineHeight: '1.6',
-              color: 'rgba(255, 255, 255, 0.65)',
-              margin: 0
-            }}
-          >
-            {activeProject.description}
-          </p>
-
-          {/* Tech Pills */}
-          <div
-            style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(201, 168, 76, 0.2)',
+              color: '#C9A84C',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
               display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-              marginTop: '4px'
+              alignItems: 'center',
+              justifyContent: 'center',
+              lineHeight: 1,
+              outline: 'none',
+              transition: 'background 0.2s, box-shadow 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'rgba(201, 168, 76, 0.12)'
+              e.target.style.boxShadow = '0 0 15px rgba(201, 168, 76, 0.2)'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'rgba(255, 255, 255, 0.05)'
+              e.target.style.boxShadow = 'none'
             }}
           >
-            {activeProject.tech.map((t) => (
-              <span
-                key={t}
-                style={{
-                  border: '1px solid rgba(201, 168, 76, 0.3)',
-                  color: '#C9A84C',
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-mono)',
-                  padding: '4px 10px',
-                  borderRadius: '100px',
-                  textTransform: 'uppercase'
-                }}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
-
-          {/* Action Buttons */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '16px',
-              marginTop: '8px'
-            }}
-          >
-            {/* VIEW CODE */}
-            <a
-              href={activeProject.github}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#0D0D0D',
-                border: '1px solid #C9A84C',
-                color: '#C9A84C',
-                textDecoration: 'none',
-                fontFamily: 'var(--font-ui)',
-                fontSize: '12px',
-                fontWeight: '600',
-                letterSpacing: '1px',
-                padding: '12px 24px',
-                borderRadius: '2px',
-                transition: 'background 0.25s, color 0.25s',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.background = '#C9A84C'
-                e.target.style.color = '#0D0D0D'
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = '#0D0D0D'
-                e.target.style.color = '#C9A84C'
-              }}
-            >
-              VIEW CODE
-            </a>
-
-            {/* LIVE / OFFLINE */}
-            {activeProject.live ? (
-              <a
-                href={activeProject.live}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'transparent',
-                  border: '1px solid rgba(201, 168, 76, 0.5)',
-                  color: '#C9A84C',
-                  textDecoration: 'none',
-                  fontFamily: 'var(--font-ui)',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  letterSpacing: '1px',
-                  padding: '12px 24px',
-                  borderRadius: '2px',
-                  transition: 'border 0.25s, background 0.25s, color 0.25s',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = 'rgba(201, 168, 76, 0.1)'
-                  e.target.style.borderColor = '#C9A84C'
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent'
-                  e.target.style.borderColor = 'rgba(201, 168, 76, 0.5)'
-                }}
-              >
-                LIVE DEMO
-              </a>
-            ) : (
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'transparent',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: 'rgba(255, 255, 255, 0.3)',
-                  fontFamily: 'var(--font-ui)',
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  letterSpacing: '1px',
-                  padding: '12px 24px',
-                  borderRadius: '2px',
-                  userSelect: 'none'
-                }}
-              >
-                OFFLINE
-              </span>
-            )}
-          </div>
+            ›
+          </button>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
