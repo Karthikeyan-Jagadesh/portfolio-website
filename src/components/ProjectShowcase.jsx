@@ -50,6 +50,7 @@ export default function ProjectShowcase({ projects = defaultProjects }) {
   const [hoveringActive, setHoveringActive] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isTouch, setIsTouch] = useState(false)
+  const [isHoveringContainer, setIsHoveringContainer] = useState(false)
 
   const canvasRef = useRef(null)
   const lastClickedIndex = useRef(null)
@@ -65,6 +66,17 @@ export default function ProjectShowcase({ projects = defaultProjects }) {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  // AUTO-PLAY TIMER (2 seconds)
+  useEffect(() => {
+    if (openPanel !== null || isHoveringContainer) return
+
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => (prev === projects.length - 1 ? 0 : prev + 1))
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [openPanel, isHoveringContainer, projects.length])
 
   // 2. AMBIENT radial particles canvas
   useEffect(() => {
@@ -289,6 +301,8 @@ export default function ProjectShowcase({ projects = defaultProjects }) {
 
       {/* 3. 3D perspective viewport wrapper */}
       <div
+        onMouseEnter={() => setIsHoveringContainer(true)}
+        onMouseLeave={() => setIsHoveringContainer(false)}
         style={{
           zIndex: 1,
           perspective: '1200px',
@@ -443,6 +457,114 @@ export default function ProjectShowcase({ projects = defaultProjects }) {
                     >
                       ↗
                     </button>
+
+                    {/* Hover Quick Links Overlay Bar */}
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        width: '100%',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: '12px',
+                        padding: '10px 14px',
+                        boxSizing: 'border-box',
+                        background: 'rgba(17, 17, 17, 0.85)',
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        borderTop: '1px solid rgba(201, 168, 76, 0.25)',
+                        opacity: isActive && hoveringActive ? 1 : 0,
+                        transform: isActive && hoveringActive ? 'translateY(0)' : 'translateY(15px)',
+                        transition: 'opacity 0.25s ease, transform 0.25s ease',
+                        pointerEvents: isActive && hoveringActive ? 'auto' : 'none',
+                        zIndex: 3
+                      }}
+                    >
+                      {/* GitHub Link */}
+                      <a
+                        href={proj.github}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          border: '1px solid #C9A84C',
+                          background: 'transparent',
+                          color: '#C9A84C',
+                          fontSize: '10px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: '600',
+                          padding: '6px 14px',
+                          borderRadius: '4px',
+                          textDecoration: 'none',
+                          transition: 'all 0.2s',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = '#C9A84C'
+                          e.target.style.color = '#0D0D0D'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'transparent'
+                          e.target.style.color = '#C9A84C'
+                        }}
+                      >
+                        GITHUB ↗
+                      </a>
+
+                      {/* Live Demo Link */}
+                      {proj.live ? (
+                        <a
+                          href={proj.live}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{
+                            border: '1px solid #C9A84C',
+                            background: '#C9A84C',
+                            color: '#000000',
+                            fontSize: '10px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: '600',
+                            padding: '6px 14px',
+                            borderRadius: '4px',
+                            textDecoration: 'none',
+                            transition: 'all 0.2s',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'transparent'
+                            e.target.style.color = '#C9A84C'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = '#C9A84C'
+                            e.target.style.color = '#000000'
+                          }}
+                        >
+                          LIVE ↗
+                        </a>
+                      ) : (
+                        <span
+                          style={{
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            color: 'rgba(255, 255, 255, 0.3)',
+                            fontSize: '10px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: '600',
+                            padding: '6px 14px',
+                            borderRadius: '4px',
+                            cursor: 'default',
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          OFFLINE
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Card Body (Bottom 48%) */}
