@@ -8,10 +8,11 @@ export default function Projects() {
     title: item.title,
     subtitle: item.category,
     description: item.description,
-    tags: item.tags,
+    tech: item.tags,
     image: item.image,
     github: item.githubUrl,
-    live: item.liveUrl
+    live: item.liveUrl,
+    status: item.status
   }))
 
   return (
