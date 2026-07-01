@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import emailjs from 'emailjs-com'
 import MagneticButton from '../components/MagneticButton.jsx'
-import ShaderBackground from '../components/ShaderBackground.jsx'
 
 export default function Contact() {
   const [status, setStatus] = useState('idle')
@@ -36,32 +35,49 @@ export default function Contact() {
   }
 
   return (
-    <ShaderBackground className={`scene contact-scene contact-section ${status}`} colors={['#7C5CFF', '#4FD1FF', '#FF6FD8']}>
+    <section className={`scene contact-scene contact-section ${status}`}>
       <div className="contact-copy">
-        <span className="ghost-talk">LET'S</span>
+        <span className="film-label">[ CORRESPONDENCE ]</span>
         <h2>TALK.</h2>
         <p>Available for internships, collaborations, and projects that matter.</p>
         <div className="contact-links">
-          <a href="https://github.com/Karthikeyan-Jagadesh" target="_blank" rel="noreferrer">GITHUB -> <span>github.com/Karthikeyan-Jagadesh</span></a>
-          <a href="https://linkedin.com/in/karthikeyan-jagadesh" target="_blank" rel="noreferrer">LINKEDIN -> <span>linkedin.com/in/karthikeyan-jagadesh</span></a>
-          <button type="button" onClick={copyEmail}>EMAIL -> <span>{copied ? 'COPIED' : 'karthikeyan.jagadesh@example.com [ COPY ]'}</span></button>
+          <a href="https://github.com/Karthikeyan-Jagadesh" target="_blank" rel="noreferrer">
+            GITHUB <span>github.com/Karthikeyan-Jagadesh</span>
+          </a>
+          <a href="https://linkedin.com/in/karthikeyan-jagadesh" target="_blank" rel="noreferrer">
+            LINKEDIN <span>linkedin.com/in/karthikeyan-jagadesh</span>
+          </a>
+          <button type="button" onClick={copyEmail}>
+            EMAIL <span>{copied ? 'COPIED' : 'karthikeyan.jagadesh@example.com [ COPY ]'}</span>
+          </button>
         </div>
       </div>
-      <form className="contact-form magnetic" onSubmit={submit}>
-        <span className="film-label">SEND A MESSAGE</span>
+      <form className="contact-form sketch-card" onSubmit={submit}>
+        <div className="tape-effect tape-tl" />
+        <div className="tape-effect tape-tr" />
+        <span className="film-label">LEAVE A NOTE</span>
         {status === 'success' ? (
-          <strong className="received">MESSAGE RECEIVED</strong>
+          <strong className="received">NOTE RECEIVED! ✍️</strong>
         ) : (
           <>
-            <label>NAME<input name="name" required /></label>
-            <label>EMAIL<input name="email" type="email" required /></label>
-            <label>MESSAGE<textarea name="message" rows="5" required /></label>
+            <label>
+              NAME
+              <input name="name" required />
+            </label>
+            <label>
+              EMAIL
+              <input name="email" type="email" required />
+            </label>
+            <label>
+              MESSAGE
+              <textarea name="message" rows="4" required />
+            </label>
             <MagneticButton className="send-button" type="submit" disabled={status === 'sending'}>
-              {status === 'sending' ? 'SENDING...' : status === 'error' ? 'FAILED - TRY AGAIN' : 'SEND MESSAGE'}
+              {status === 'sending' ? 'WRITING...' : status === 'error' ? 'FAILED - RETRY' : 'SEND MESSAGE'}
             </MagneticButton>
           </>
         )}
       </form>
-    </ShaderBackground>
+    </section>
   )
 }

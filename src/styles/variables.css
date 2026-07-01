@@ -1,17 +1,37 @@
 :root {
-  --black: #080808;
-  --black-soft: #0f0f0f;
-  --black-card: #141414;
-  --gold-primary: #c9a84c;
-  --gold: var(--gold-primary);
-  --gold-bright: #f0c040;
-  --gold-dim: #6b5a2a;
-  --gold-glow: rgba(201, 168, 76, 0.15);
-  --white: #f5f5f5;
-  --white-dim: #888888;
-  --white-ghost: #1a1a1a;
-  --border-gold: rgba(201, 168, 76, 0.2);
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-ui: "Space Grotesk", system-ui, sans-serif;
+  --theme-transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+  --font-display: "Architects Daughter", cursive, sans-serif;
+  --font-ui: "Patrick Hand", cursive, sans-serif;
   --font-mono: "Space Mono", monospace;
+  --font-caveat: "Caveat", cursive;
+
+  /* Theme variables - Light Mode Default */
+  --paper-bg: #fdfaf4;
+  --ink-color: #262930;
+  --ink-dim: #5c6270;
+  --ruled-line: rgba(65, 105, 225, 0.06);
+  --ruled-margin: rgba(220, 53, 69, 0.18);
+  --accent-highlight: rgba(255, 235, 59, 0.45);
+  --accent-highlight-blue: rgba(129, 212, 250, 0.5);
+  --accent-marker: #c9a84c;
+  --border-sketch: #262930;
+  --card-bg: #fffffb;
+  --tape-bg: rgba(230, 225, 205, 0.45);
+  --selection-bg: rgba(255, 235, 59, 0.3);
+}
+
+.theme-dark {
+  /* Theme variables - Dark Chalkboard Mode */
+  --paper-bg: #1e2322;
+  --ink-color: #f7f9f7;
+  --ink-dim: #9aa8a1;
+  --ruled-line: rgba(255, 255, 255, 0.035);
+  --ruled-margin: rgba(255, 99, 71, 0.08);
+  --accent-highlight: rgba(165, 214, 167, 0.3);
+  --accent-highlight-blue: rgba(128, 222, 234, 0.3);
+  --accent-marker: #a5d6a7;
+  --border-sketch: #f7f9f7;
+  --card-bg: #262d2b;
+  --tape-bg: rgba(255, 255, 255, 0.05);
+  --selection-bg: rgba(165, 214, 167, 0.25);
 }

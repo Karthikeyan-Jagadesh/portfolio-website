@@ -3,7 +3,7 @@ import React from 'react'
 export default function Navbar({ activeSection, total, onJump }) {
   return (
     <header className="navbar">
-      <button className="nav-brand" type="button" onClick={() => onJump(0)}>KARTHIK</button>
+      <button className="nav-brand" type="button" onClick={() => onJump(0)}>KARTHIK.DEV</button>
       <nav className="section-dots" aria-label="Portfolio sections">
         {Array.from({ length: total }).map((_, index) => (
           <button
